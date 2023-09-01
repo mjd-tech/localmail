@@ -15,6 +15,11 @@ docker build -t localmail .
 ```
 
 ## Compose / Portainer
+These are the settings that worked for me.
+
+In this example the mailserver is **mynas.local**  
+Replace mynas with your servername. keep the .local  
+I tried just using mynas without the .local but couldn't get Thunderbird to connect.
 
 Ports 2500 and 14300 are used so it won't interfere with other mail services.
 Some NAS units run Postfix on the standard ports.
@@ -28,7 +33,7 @@ services:
     image: localmail
     container_name: localmail
     environment:
-      - MY_HOSTNAME=SYSTEM-HOSTNAME-HERE
+      - MY_HOSTNAME=mynas.local
       - MY_PASSWORD=password
     volumes:
       - /PATH/TO/appdata/localmail/Maildir:/home/localmail/Maildir
@@ -42,10 +47,10 @@ services:
 
 ## Sending cron email from linux hosts
 For example:
-- mailserver runs on host "mynas"
-- You want to send cron email from host "daily_driver"
+- mailserver runs on "mynas.local"
+- You want to send cron email from "daily_driver"
 - the user on "daily_driver" is "fred"
-- you have added "mynas" in /etc/hosts on "daily_driver"
+- you have added "mynas.local" and its IP4 address in `/etc/hosts` on "daily_driver"
 
 On "daily_driver"
 - install **msmtp-mta** package
@@ -61,8 +66,8 @@ On "daily_driver"
 
 - edit (as root) `/etc/aliases` Change "mynas" and "fred" as needed
 
-        default: localmail@mynas
-        fred: localmail@mynas
+        default: localmail@mynas.local
+        fred: localmail@mynas.local
 
 
 ## Read mail with Thunderbird
@@ -70,15 +75,27 @@ On "daily_driver"
 - create new mail account "LocalMail"
 - Default Identity - Change "mynas"
     - Your Name: Local Mail
-    - Email Address: localmail@mynas
+    - Email Address: localmail@mynas.local
 - Server Settings
     - Server Type: IMAP Mail Server
     - Port: 14300
-    - Server Name: mynas
+    - Server Name: mynas.local
     - User Name: localmail
     - Connection Security: STARTTLS
     - Authentication Method: Normal password
 - When it asks for a password, use the password specified in MY_PASSWORD above
+
+### NOTE - IP6 and the .local domain
+- .local is a special domain name used by mDNS (avahi), which runs on most Linux boxes.
+- avahi supports both IP4 and IP6, but Docker containers only work with IP4.
+- If Thunderbird sees mynas.local as an IP6 address, it won't connect
+- Put "mynas.local" in your `/etc/hosts` file, with its IP4 address
+- check your `/etc/nsswitch.conf`. It should have a line like this:
+
+```
+hosts:          files mdns4_minimal [NOTFOUND=return] dns myhostname
+```
+There may be other stuff. The important thing is "files" comes before "mdns..."
 
 ## Testing
 
